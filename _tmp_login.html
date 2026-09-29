@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Hospital - Login</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/app.css">
+    <script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js"></script>
+</head>
+<body class="login-page">
+<div class="container-fluid p-0">
+    <div class="row g-0 login-split">
+        <div class="col-lg-6 login-brand d-none d-lg-flex">
+            <div>
+                <div class="mb-4 fs-1"><i class="bi bi-hospital"></i></div>
+                <h1 class="mb-3">Care that stays coordinated.</h1>
+                <p class="mb-4 fs-5" style="opacity:.85; max-width: 34rem;">
+                    One workspace for doctors, nurses, and patients — appointments, records, and team communication in a single hospital portal.
+                </p>
+                <ul class="list-unstyled mb-0" style="opacity:.9;">
+                    <li class="mb-2"><span class="feature-dot"></span>Role-based dashboards</li>
+                    <li class="mb-2"><span class="feature-dot"></span>Patient records and schedules</li>
+                    <li><span class="feature-dot"></span>Team messaging over TCP sockets</li>
+                </ul>
+            </div>
+        </div>
+        <div class="col-lg-6 login-panel">
+            <div class="login-box">
+                <div class="text-center d-lg-none mb-3 fs-1">🏥</div>
+                <h2 class="text-center mb-1">Smart Hospital</h2>
+                <p class="text-center text-muted mb-4">Sign in to your care workspace</p>
+
+                
+
+                <form action="/login" method="post">
+                    <div class="mb-3">
+                        <label class="form-label" for="username">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            <input id="username" type="text" name="username" class="form-control" placeholder="Enter username" required value="">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="password">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                            <input id="password" type="password" name="password" class="form-control" placeholder="Enter password" required>
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="Show password">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button class="btn btn-accent w-100" type="submit">Login</button>
+                </form>
+
+                <div class="mt-4">
+                    <div class="d-grid gap-2">
+                        <button type="button" id="clerk-sign-in" class="btn btn-primary w-100">
+                            <i class="bi bi-person-badge me-2"></i> Continue with Clerk
+                        </button>
+                        <button type="button" id="clerk-sign-up" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-person-plus me-2"></i> Create account with Clerk
+                        </button>
+                    </div>
+                    <div class="d-flex align-items-center my-3">
+                        <hr class="flex-grow-1">
+                        <span class="mx-2 text-muted small">or continue with demo account</span>
+                        <hr class="flex-grow-1">
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong class="d-block">Demo accounts</strong>
+                        <a href="/admin-login" class="small fw-semibold text-primary text-decoration-none">
+                            Admin Portal <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="button" class="demo-chip border-primary-subtle" data-user="admin" data-pass="admin123" style="background:#f0f9ff;">
+                            <strong class="text-primary"><i class="bi bi-shield-lock-fill me-1"></i>Admin</strong> — System Administrator<br>
+                            <span class="text-muted">admin / admin123</span>
+                        </button>
+                        <button type="button" class="demo-chip" data-user="dr_meera" data-pass="doctor123">
+                            <strong>Doctor</strong> — Dr. Meera Iyer<br>
+                            <span class="text-muted">dr_meera / doctor123</span>
+                        </button>
+                        <button type="button" class="demo-chip" data-user="aarav_pat" data-pass="patient123">
+                            <strong>Patient</strong> — Aarav Sharma<br>
+                            <span class="text-muted">aarav_pat / patient123</span>
+                        </button>
+                        <button type="button" class="demo-chip" data-user="nurse_priya" data-pass="nurse123">
+                            <strong>Nurse</strong> — Priya Sen<br>
+                            <span class="text-muted">nurse_priya / nurse123</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+const CLERK_PUBLISHABLE_KEY = "pk_test_c3VidGxlLXBhcmFrZWV0LTM5NTYuY2xlcmsuYWNjb3VudHMuZGV2JA";
+if (!CLERK_PUBLISHABLE_KEY) {
+    console.warn('Clerk publishable key is not configured. Set CLERK_PUBLISHABLE_KEY or NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY before starting the app.');
+}
+
+if (CLERK_PUBLISHABLE_KEY && window.Clerk) {
+    const clerk = new window.Clerk(CLERK_PUBLISHABLE_KEY);
+    let clerkReady = false;
+
+    clerk.load().then(() => {
+        clerkReady = true;
+    }).catch((error) => {
+        console.error('Clerk failed to load:', error);
+    });
+
+    document.getElementById('clerk-sign-in')?.addEventListener('click', () => {
+        if (!clerkReady) return;
+        clerk.openSignIn();
+    });
+
+    document.getElementById('clerk-sign-up')?.addEventListener('click', () => {
+        if (!clerkReady) return;
+        clerk.openSignUp();
+    });
+}
+
+document.getElementById("togglePassword").addEventListener("click", function () {
+    const input = document.getElementById("password");
+    const icon = this.querySelector("i");
+    const hidden = input.type === "password";
+    input.type = hidden ? "text" : "password";
+    icon.className = hidden ? "bi bi-eye-slash" : "bi bi-eye";
+});
+document.querySelectorAll(".demo-chip").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+        document.getElementById("username").value = this.dataset.user;
+        document.getElementById("password").value = this.dataset.pass;
+    });
+});
+</script>
+</body>
+</html>

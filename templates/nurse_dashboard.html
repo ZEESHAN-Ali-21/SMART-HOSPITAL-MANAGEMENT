@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+{% block title %}Nurse Dashboard{% endblock %}
+{% block content %}
+<div class="page-header d-flex flex-column flex-sm-row justify-content-between gap-3 mb-4">
+    <div>
+        <h2 class="mb-1">Nurse Dashboard</h2>
+        <span class="badge badge-role pill bg-primary">Role: Nurse</span>
+    </div>
+</div>
+
+<!-- Nurse Details -->
+<div class="card card-soft p-4 mb-4">
+    <h4 class="mb-3">Nurse Details</h4>
+    <div class="row gy-2">
+        <div class="col-md-6"><p class="mb-1"><strong>Nurse ID:</strong> {{ nurse.id if nurse else 'N/A' }}</p></div>
+        <div class="col-md-6"><p class="mb-1"><strong>Nurse Name:</strong> {{ nurse.name if nurse else 'N/A' }}</p></div>
+        <div class="col-md-6"><p class="mb-1"><strong>Contact Number:</strong> {{ nurse.phone if nurse else 'N/A' }}</p></div>
+        <div class="col-md-6"><p class="mb-1"><strong>Email:</strong> {{ user_email or 'N/A' }}</p></div>
+        <div class="col-md-6"><p class="mb-1"><strong>Department/Ward:</strong> {{ nurse.department if nurse else 'N/A' }}</p></div>
+    </div>
+</div>
+
+<!-- Assigned Patients -->
+<div class="card card-soft p-4 mb-4">
+    <h4 class="mb-3">Assigned Patients</h4>
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+            <tr>
+                <th>Patient ID</th>
+                <th>Patient Name</th>
+                <th>Age</th>
+                <th>Gender</th>
+                <th>Room/Ward</th>
+                <th>Assigned Doctor</th>
+                <th>Details</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for patient in patients %}
+            <tr>
+                <td>{{ patient.id }}</td>
+                <td>{{ patient.name }}</td>
+                <td>{{ patient.age or 'N/A' }}</td>
+                <td>{{ patient.gender or 'N/A' }}</td>
+                <td>{{ patient.ward or 'General' }}</td>
+                <td>{{ patient.doctor_name_display }}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#viewPatientModal{{ patient.id }}">View Details</button>
+                    
+                    <!-- View Details Modal -->
+                    <div class="modal fade" id="viewPatientModal{{ patient.id }}" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog">
+                        <div class="modal-content text-start">
+                          <div class="modal-header">
+                            <h5 class="modal-title">Patient Details: {{ patient.name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                          </div>
+                          <div class="modal-body">
+                            <p><strong>Patient ID:</strong> {{ patient.id }}</p>
+                            <p><strong>Name:</strong> {{ patient.name }}</p>
+                            <p><strong>Age:</strong> {{ patient.age or 'N/A' }}</p>
+                            <p><strong>Gender:</strong> {{ patient.gender or 'N/A' }}</p>
+                            <p><strong>Phone:</strong> {{ patient.phone or 'N/A' }}</p>
+                            <p><strong>Address:</strong> {{ patient.address or 'N/A' }}</p>
+                            <p><strong>Condition:</strong> {{ patient.disease or 'N/A' }}</p>
+                            <p><strong>Room/Ward:</strong> {{ patient.ward or 'General' }}</p>
+                            <p><strong>Assigned Doctor:</strong> {{ patient.doctor_name_display }}</p>
+                          </div>
+                          <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-muted">No assigned patients.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Patient Care Information -->
+<div class="card card-soft p-4 mb-4">
+    <h4 class="mb-3">Patient Care Information</h4>
+    <div class="row gy-3">
+        {% for record in records %}
+        <div class="col-md-6">
+            <div class="border rounded p-3 bg-light h-100">
+                <p class="mb-1"><strong>Patient Name:</strong> {{ record.patient_name }}</p>
+                <p class="mb-1"><strong>Assigned Doctor:</strong> {{ record.assigned_doctor }}</p>
+                <p class="mb-1"><strong>Room/Ward:</strong> {{ record.room_ward }}</p>
+                <p class="mb-1 mt-2"><strong>Current Care / Status:</strong></p>
+                <p class="mb-1 small text-muted">Diagnosis: {{ record.diagnosis or 'N/A' }}</p>
+                <p class="mb-1 small text-muted">Advice: {{ record.advice or 'N/A' }}</p>
+                <p class="mb-1 small text-muted">Medicines: {{ record.medicines or 'N/A' }}</p>
+                <p class="mb-0 small text-muted">Notes: {{ record.notes or 'N/A' }}</p>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12"><p class="text-muted">No care instructions available.</p></div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Appointments -->
+<div class="card card-soft p-4 mb-4">
+    <h4 class="mb-3">Appointments</h4>
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+            <tr>
+                <th>Patient Name</th>
+                <th>Doctor Name</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Reason for Visit</th>
+                <th>Status</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for appt in appointments %}
+            <tr>
+                <td>{{ appt.patient_name }}</td>
+                <td>{{ appt.doctor_name }}</td>
+                <td>{{ appt.date }}</td>
+                <td>{{ appt.time }}</td>
+                <td>{{ appt.reason or 'Consultation' }}</td>
+                <td><span class="badge bg-info text-dark">{{ appt.status }}</span></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-muted">No appointments scheduled for assigned patients.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Nurse Communication Hub -->
+    <div class="col-lg-6">
+        <div class="card card-soft p-4 h-100">
+            <h5 class="mb-3"><i class="bi bi-chat-dots text-primary me-2"></i>Send Message</h5>
+            <form onsubmit="sendNurseMessage(event)">
+                <div class="mb-3">
+                    <label for="msg_type" class="form-label">Message Type</label>
+                    <select class="form-select" id="msg_type" onchange="toggleNurseMessageTargets()" required>
+                        <option value="">Select type...</option>
+                        <option value="Nurse -> Doctor">Message to Doctor</option>
+                        <option value="Nurse -> Patient">Message to Patient</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3" id="div_patient_select" style="display:none;">
+                    <label for="msg_patient_id" class="form-label">Select Patient</label>
+                    <select class="form-select" id="msg_patient_id">
+                        <option value="">Choose patient...</option>
+                        {% for p in patients %}
+                        <option value="{{ p.id }}" data-user-id="{{ p.user_id }}">{{ p.name }} (ID: {{ p.id }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3" id="div_doctor_select" style="display:none;">
+                    <label for="msg_doctor_id" class="form-label">Select Doctor</label>
+                    <select class="form-select" id="msg_doctor_id">
+                        <option value="">Choose doctor...</option>
+                        {% for d in all_doctors %}
+                        <option value="{{ d.user_id }}">{{ d.name }} - {{ d.specialization }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="msg_content" class="form-label">Message</label>
+                    <textarea class="form-control" id="msg_content" rows="3" required></textarea>
+                </div>
+                <button type="submit" id="btnSendNurseMsg" class="btn btn-primary w-100"><i class="bi bi-send me-1"></i>Send</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card card-soft p-4 h-100">
+            <h5 class="mb-3"><i class="bi bi-inbox text-success me-2"></i>Doctor Instructions & Messages</h5>
+            <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
+                {% set has_inbox = false %}
+                {% for msg in messages %}
+                    {% if msg.receiver_id == nurse.user_id or msg.message_type == 'Doctor -> Nurse' %}
+                    {% set has_inbox = true %}
+                    <div class="list-group-item px-0 pt-3 pb-2 border-bottom">
+                        <div class="d-flex w-100 justify-content-between mb-1">
+                            <strong class="text-dark">{{ msg.sender_name }} <span class="badge bg-secondary-subtle text-secondary ms-2">{{ msg.message_type }}</span></strong>
+                            <small class="text-muted">{{ msg.date }} {{ msg.time }}</small>
+                        </div>
+                        <p class="mb-1 small">{{ msg.message }}</p>
+                        {% if msg.patient_name != '—' %}
+                        <small class="text-muted">Related Patient: {{ msg.patient_name }}</small>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+                {% if not has_inbox %}
+                <div class="text-muted small mt-2">No incoming instructions or messages.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Communication History -->
+    <div class="col-12">
+        <div class="card card-soft p-4">
+            <h5 class="mb-3"><i class="bi bi-clock-history text-secondary me-2"></i>Communication History</h5>
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Date/Time</th>
+                            <th>Type</th>
+                            <th>Sender</th>
+                            <th>Receiver</th>
+                            <th>Patient Context</th>
+                            <th>Message</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for msg in messages %}
+                        <tr>
+                            <td class="text-nowrap">{{ msg.date }} <small class="text-muted">{{ msg.time }}</small></td>
+                            <td><span class="badge bg-secondary-subtle text-secondary">{{ msg.message_type }}</span></td>
+                            <td>{{ msg.sender_name }}</td>
+                            <td>{{ msg.receiver_name }}</td>
+                            <td>{{ msg.patient_name }}</td>
+                            <td>{{ msg.message }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-muted text-center py-3">No communication history found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function toggleNurseMessageTargets() {
+        const type = document.getElementById('msg_type').value;
+        const pDiv = document.getElementById('div_patient_select');
+        const dDiv = document.getElementById('div_doctor_select');
+        const pSel = document.getElementById('msg_patient_id');
+        const dSel = document.getElementById('msg_doctor_id');
+
+        pDiv.style.display = 'none';
+        dDiv.style.display = 'none';
+        pSel.required = false;
+        dSel.required = false;
+
+        if (type === 'Nurse -> Patient') {
+            pDiv.style.display = 'block';
+            pSel.required = true;
+        } else if (type === 'Nurse -> Doctor') {
+            pDiv.style.display = 'block';
+            dDiv.style.display = 'block';
+            pSel.required = true;
+            dSel.required = true;
+        }
+    }
+
+    async function sendNurseMessage(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnSendNurseMsg');
+        btn.disabled = true;
+        
+        const type = document.getElementById('msg_type').value;
+        const pSel = document.getElementById('msg_patient_id');
+        const dSel = document.getElementById('msg_doctor_id');
+        const content = document.getElementById('msg_content').value;
+
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0];
+        const timeStr = now.toTimeString().split(' ')[0].substring(0,5);
+
+        let receiver_id = null;
+        let patient_id = null;
+
+        if (type === 'Nurse -> Patient') {
+            if (pSel.selectedIndex > 0) {
+                receiver_id = pSel.options[pSel.selectedIndex].getAttribute('data-user-id');
+                patient_id = pSel.value;
+            }
+        } else if (type === 'Nurse -> Doctor') {
+            if (dSel.selectedIndex > 0) {
+                receiver_id = dSel.value;
+            }
+            if (pSel.selectedIndex > 0) {
+                patient_id = pSel.value;
+            }
+        }
+
+        const payload = {
+            receiver_id: receiver_id,
+            patient_id: patient_id,
+            message_type: type,
+            message: content,
+            date: dateStr,
+            time: timeStr
+        };
+
+        try {
+            const res = await fetch('/api/messages', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error("Failed to send message");
+            showToast("Message sent successfully", "success");
+            setTimeout(() => window.location.reload(), 1500);
+        } catch(err) {
+            alert(err.message);
+            btn.disabled = false;
+        }
+    }
+</script>
+{% endblock %}

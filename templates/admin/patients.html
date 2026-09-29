@@ -1,0 +1,688 @@
+{% extends "base.html" %}
+{% block title %}Patient Management - Smart Hospital{% endblock %}
+{% block content %}
+<div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div>
+        <div class="eyebrow mb-1">Directory Management</div>
+        <h2 class="mb-1 fw-bold">Patient Management</h2>
+        <p class="text-muted small mb-0">Register new patient profiles, issue temporary passwords, and manage hospital accounts.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a href="/admin-dashboard" class="btn btn-outline-secondary rounded-pill btn-sm px-3">
+            <i class="bi bi-arrow-left me-1"></i> Dashboard
+        </a>
+        {% if role == 'admin' %}
+        <button type="button" class="btn btn-primary rounded-pill btn-sm px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#addPatientModal" style="background:#0284c7; border:none;">
+            <i class="bi bi-person-plus-fill me-1"></i> Add New Patient
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Controls: Search & Filter -->
+<div class="card card-soft p-3 mb-4">
+    <div class="row g-2 align-items-center">
+        <div class="col-12 col-md-6 col-lg-5">
+            <div class="search-input-wrap">
+                <i class="bi bi-search search-icon"></i>
+                <input type="text" id="patientSearchInput" class="form-control form-control-sm" placeholder="Search by name, username, phone, or address..." oninput="filterPatientTable()">
+            </div>
+        </div>
+        <div class="col-6 col-md-3 col-lg-3">
+            <select id="statusFilter" class="form-select form-select-sm" onchange="filterPatientTable()">
+                <option value="">All Account Statuses</option>
+                <option value="Active">Active</option>
+                <option value="Temp Password">Temp Password Pending</option>
+                <option value="Inactive">Inactive</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-3 col-lg-4 text-end">
+            <span class="text-muted small" id="patientCountDisplay">Loading patients...</span>
+        </div>
+    </div>
+</div>
+
+<!-- Patient Table Card -->
+<div class="card card-soft p-0 overflow-hidden shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-admin align-middle">
+            <thead>
+                <tr>
+                    <th>Patient ID</th>
+                    <th>Patient Name</th>
+                    <th>Age</th>
+                    <th>Address</th>
+                    <th>Phone Number</th>
+                    <th>Hospital Name</th>
+                    <th>Username</th>
+                    <th>Account Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="patientTableBody">
+                <tr>
+                    <td colspan="9" class="text-center py-5 text-muted">
+                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                        Loading patient records...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 1. ADD NEW PATIENT MODAL                   -->
+<!-- ========================================== -->
+<div class="modal fade" id="addPatientModal" tabindex="-1" aria-labelledby="addPatientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-primary-subtle text-primary p-2 d-flex align-items-center justify-content-center" style="width:36px; height:36px;">
+                        <i class="bi bi-person-plus-fill"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold" id="addPatientModalLabel">Add New Patient</h5>
+                        <small class="text-muted">Creates patient record and generates login credentials with temporary password</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addPatientForm" onsubmit="submitAddPatient(event)">
+                <div class="modal-body">
+                    <div class="alert alert-info py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                        <i class="bi bi-shield-lock-fill fs-5"></i>
+                        <div>
+                            <strong>Security Note:</strong> The temporary password will be securely hashed with PBKDF2-SHA256. The patient will be prompted to change it on their first login.
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-person-vcard me-1 text-primary"></i> Personal & Hospital Information</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="addName">Patient Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="addName" placeholder="Full legal name" required>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label" for="addAge">Age <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="addAge" placeholder="e.g. 35" min="1" max="130" required>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label" for="addGender">Gender <span class="text-danger">*</span></label>
+                            <select class="form-select" id="addGender" required>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="addPhone">Phone Number <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control" id="addPhone" placeholder="+91 98765 43210" required>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="addHospital">Hospital Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="addHospital" value="Smart Hospital Central" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="addAddress">Address <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="addAddress" placeholder="Street, City, Postal Code" required>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-dark border-bottom pb-2 mb-3 mt-4"><i class="bi bi-key-fill me-1 text-primary"></i> Account Login & Security Credentials</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="addUsername">Username <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-at"></i></span>
+                                <input type="text" class="form-control" id="addUsername" placeholder="e.g. rahul_pat" pattern="^[a-zA-Z0-9_.-]+$" required>
+                            </div>
+                            <div class="form-text">Must be unique across the hospital system.</div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="addTempPassword">Temporary Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                <input type="text" class="form-control font-monospace" id="addTempPassword" placeholder="Min. 6 characters" minlength="6" required>
+                                <button type="button" class="btn btn-outline-secondary" onclick="generateRandomTempPassword('addTempPassword')">Generate</button>
+                            </div>
+                            <div class="form-text">User will be forced to change this upon first login.</div>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-dark border-bottom pb-2 mb-3 mt-4"><i class="bi bi-clipboard2-pulse me-1 text-primary"></i> Clinical Care Details</h6>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="addDisease">Medical Condition / Disease</label>
+                            <input type="text" class="form-control" id="addDisease" placeholder="e.g. Hypertension, Diabetes, Routine Checkup">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="addWard">Hospital Ward</label>
+                            <select class="form-select" id="addWard">
+                                <option value="General">General Ward</option>
+                                <option value="ICU">Intensive Care Unit (ICU)</option>
+                                <option value="Cardiology">Cardiology Ward</option>
+                                <option value="Pediatrics">Pediatrics Ward</option>
+                                <option value="Emergency">Emergency Ward</option>
+                                <option value="Outpatient">Outpatient (OPD)</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="addDoctorSelect">Assigned Doctor</label>
+                            <select class="form-select" id="addDoctorSelect">
+                                <option value="">-- None / Unassigned --</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="addNurseSelect">Assigned Nurse</label>
+                            <select class="form-select" id="addNurseSelect">
+                                <option value="">-- None / Unassigned --</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" id="addPatientSubmitBtn" class="btn btn-primary rounded-pill px-4 fw-semibold" style="background:#0284c7; border:none;">
+                        <i class="bi bi-check2-circle me-1"></i> Create Patient Account
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 2. EDIT PATIENT MODAL                      -->
+<!-- ========================================== -->
+<div class="modal fade" id="editPatientModal" tabindex="-1" aria-labelledby="editPatientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-teal-subtle text-teal p-2 d-flex align-items-center justify-content-center" style="width:36px; height:36px; background:#ccfbf1; color:#0d9488;">
+                        <i class="bi bi-pencil-square"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold" id="editPatientModalLabel">Edit Patient Information</h5>
+                        <small class="text-muted">Update profile details, contact information, and hospital placement</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editPatientForm" onsubmit="submitEditPatient(event)">
+                <input type="hidden" id="editPatientId">
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="editName">Patient Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editName" required>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label" for="editAge">Age <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="editAge" min="1" max="130" required>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label" for="editGender">Gender</label>
+                            <select class="form-select" id="editGender">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="editPhone">Phone Number <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control" id="editPhone" required>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="editHospital">Hospital Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editHospital" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="editAddress">Address <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editAddress" required>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="editDisease">Medical Condition</label>
+                            <input type="text" class="form-control" id="editDisease">
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label" for="editWard">Ward</label>
+                            <select class="form-select" id="editWard">
+                                <option value="General">General</option>
+                                <option value="ICU">ICU</option>
+                                <option value="Cardiology">Cardiology</option>
+                                <option value="Pediatrics">Pediatrics</option>
+                                <option value="Emergency">Emergency</option>
+                                <option value="Outpatient">Outpatient</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label" for="editStatus">Account Status</label>
+                            <select class="form-select" id="editStatus">
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" id="editPatientSubmitBtn" class="btn btn-teal rounded-pill px-4 fw-semibold text-white" style="background:#0d9488; border:none;">
+                        <i class="bi bi-save me-1"></i> Update Patient
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 3. VIEW PATIENT DETAILS MODAL              -->
+<!-- ========================================== -->
+<div class="modal fade" id="viewPatientModal" tabindex="-1" aria-labelledby="viewPatientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold" id="viewPatientModalLabel">
+                    <i class="bi bi-person-vcard text-primary me-2"></i>Patient Dossier
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4" id="viewPatientModalBody">
+                <!-- Dynamically populated -->
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 4. DELETE CONFIRMATION MODAL               -->
+<!-- ========================================== -->
+<div class="modal fade" id="deletePatientModal" tabindex="-1" aria-labelledby="deletePatientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content text-center p-3">
+            <div class="modal-body">
+                <div class="rounded-circle bg-danger-subtle text-danger d-inline-flex align-items-center justify-content-center mb-3" style="width:56px; height:56px;">
+                    <i class="bi bi-trash3-fill fs-3"></i>
+                </div>
+                <h5 class="fw-bold mb-2">Delete Patient?</h5>
+                <p class="text-muted small mb-3">
+                    Are you sure you want to permanently delete patient <strong id="deletePatientName"></strong>? This will remove both the patient record and their login access account.
+                </p>
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="confirmDeletePatientBtn" class="btn btn-danger rounded-pill px-3" onclick="executeDeletePatient()">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let allPatients = [];
+let patientToDeleteId = null;
+
+// Generate random temp password
+function generateRandomTempPassword(targetId) {
+    const chars = 'abcdefghjkmnpqrstuvwxyz23456789!@#$';
+    let res = 'Tmp@';
+    for (let i = 0; i < 6; i++) {
+        res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    document.getElementById(targetId).value = res;
+}
+
+// Load staff options into select dropdowns
+async function loadStaffOptions() {
+    try {
+        const [docsRes, nursesRes] = await Promise.all([
+            fetch('/api/doctors'),
+            fetch('/api/nurses')
+        ]);
+        const doctors = await docsRes.json();
+        const nurses = await nursesRes.json();
+
+        const docSelect = document.getElementById('addDoctorSelect');
+        docSelect.innerHTML = '<option value="">-- None / Unassigned --</option>';
+        doctors.forEach(d => {
+            docSelect.innerHTML += `<option value="${d.id}">${d.name} (${d.specialization || 'Clinical'})</option>`;
+        });
+
+        const nurseSelect = document.getElementById('addNurseSelect');
+        nurseSelect.innerHTML = '<option value="">-- None / Unassigned --</option>';
+        nurses.forEach(n => {
+            nurseSelect.innerHTML += `<option value="${n.id}">${n.name} (${n.department || 'Ward'})</option>`;
+        });
+    } catch (e) {
+        console.error('Error loading staff dropdowns:', e);
+    }
+}
+
+// Load all patients from API
+async function loadPatients() {
+    const tbody = document.getElementById('patientTableBody');
+    try {
+        const res = await fetch('/api/patients');
+        allPatients = await res.json();
+        renderPatients(allPatients);
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-danger">Failed to load patient records.</td></tr>`;
+    }
+}
+
+// Render table
+function renderPatients(patients) {
+    const tbody = document.getElementById('patientTableBody');
+    const countDisplay = document.getElementById('patientCountDisplay');
+    countDisplay.textContent = `Showing ${patients.length} patient${patients.length === 1 ? '' : 's'}`;
+
+    if (!patients.length) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="empty-state">
+                    <i class="bi bi-people empty-state-icon"></i>
+                    <div class="empty-state-title">No patients found</div>
+                    <div class="empty-state-desc">No patient records match your search criteria or none have been added yet.</div>
+                </td>
+            </tr>`;
+        return;
+    }
+
+    tbody.innerHTML = patients.map(p => {
+        let statusBadge = '<span class="badge-status-active">Active</span>';
+        if (p.status === 'Inactive' || p.user_status === 'Inactive') {
+            statusBadge = '<span class="badge-status-inactive">Inactive</span>';
+        } else if (p.must_change_password) {
+            statusBadge = '<span class="badge-status-temp" title="Must change temporary password upon login">Temp Password</span>';
+        }
+
+        const usernameDisplay = p.username 
+            ? `<code class="text-primary fw-semibold">${escapeHtml(p.username)}</code>` 
+            : `<span class="text-muted small">No account</span>`;
+
+        return `
+            <tr>
+                <td class="fw-bold text-muted">#${p.id}</td>
+                <td>
+                    <div class="fw-bold text-dark">${escapeHtml(p.name)}</div>
+                    <div class="text-muted small">${p.gender || 'Not specified'} • ${escapeHtml(p.disease || 'General Care')}</div>
+                </td>
+                <td>${p.age ? p.age + ' yrs' : '-'}</td>
+                <td>
+                    <span class="d-inline-block text-truncate" style="max-width: 140px;" title="${escapeHtml(p.address || '')}">
+                        ${escapeHtml(p.address || 'Not specified')}
+                    </span>
+                </td>
+                <td>${escapeHtml(p.phone || '-')}</td>
+                <td>
+                    <span class="d-inline-block text-truncate" style="max-width: 150px;" title="${escapeHtml(p.hospital_name || '')}">
+                        ${escapeHtml(p.hospital_name || 'Smart Hospital Central')}
+                    </span>
+                </td>
+                <td>${usernameDisplay}</td>
+                <td>${statusBadge}</td>
+                <td class="text-end">
+                    <div class="btn-action-group">
+                        <button class="btn-action btn-action-view" title="View Dossier" onclick="viewPatient(${p.id})">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn-action btn-action-edit" title="Edit Patient" onclick="openEditPatientModal(${p.id})">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn-action btn-action-delete" title="Delete Patient" onclick="confirmDeletePatient(${p.id}, '${escapeQuotes(p.name)}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Filter patients
+function filterPatientTable() {
+    const query = document.getElementById('patientSearchInput').value.trim().toLowerCase();
+    const statusVal = document.getElementById('statusFilter').value;
+
+    const filtered = allPatients.filter(p => {
+        const matchesQuery = !query || 
+            (p.name && p.name.toLowerCase().includes(query)) ||
+            (p.username && p.username.toLowerCase().includes(query)) ||
+            (p.phone && p.phone.toLowerCase().includes(query)) ||
+            (p.address && p.address.toLowerCase().includes(query)) ||
+            (p.hospital_name && p.hospital_name.toLowerCase().includes(query)) ||
+            (p.disease && p.disease.toLowerCase().includes(query));
+
+        let matchesStatus = true;
+        if (statusVal === 'Active') {
+            matchesStatus = (p.status !== 'Inactive' && !p.must_change_password);
+        } else if (statusVal === 'Temp Password') {
+            matchesStatus = Boolean(p.must_change_password);
+        } else if (statusVal === 'Inactive') {
+            matchesStatus = (p.status === 'Inactive');
+        }
+
+        return matchesQuery && matchesStatus;
+    });
+
+    renderPatients(filtered);
+}
+
+// Add Patient Form Submit
+async function submitAddPatient(e) {
+    e.preventDefault();
+    const btn = document.getElementById('addPatientSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Creating...`;
+
+    const payload = {
+        name: document.getElementById('addName').value.trim(),
+        age: parseInt(document.getElementById('addAge').value, 10),
+        gender: document.getElementById('addGender').value,
+        phone: document.getElementById('addPhone').value.trim(),
+        address: document.getElementById('addAddress').value.trim(),
+        hospital_name: document.getElementById('addHospital').value.trim(),
+        username: document.getElementById('addUsername').value.trim(),
+        temporary_password: document.getElementById('addTempPassword').value,
+        disease: document.getElementById('addDisease').value.trim() || 'General Consultation',
+        ward: document.getElementById('addWard').value,
+        doctor_id: document.getElementById('addDoctorSelect').value ? parseInt(document.getElementById('addDoctorSelect').value, 10) : null,
+        nurse_id: document.getElementById('addNurseSelect').value ? parseInt(document.getElementById('addNurseSelect').value, 10) : null
+    };
+
+    try {
+        const res = await fetch('/api/patients', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.detail || data.message || 'Failed to create patient account');
+        }
+
+        bootstrap.Modal.getInstance(document.getElementById('addPatientModal')).hide();
+        document.getElementById('addPatientForm').reset();
+        document.getElementById('addHospital').value = 'Smart Hospital Central';
+        showToast(data.message || 'Patient account created successfully with temporary password!', 'success');
+        await loadPatients();
+    } catch (err) {
+        alert('Error: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="bi bi-check2-circle me-1"></i> Create Patient Account`;
+    }
+}
+
+// Open Edit Modal
+function openEditPatientModal(id) {
+    const p = allPatients.find(x => x.id === id);
+    if (!p) return;
+
+    document.getElementById('editPatientId').value = p.id;
+    document.getElementById('editName').value = p.name || '';
+    document.getElementById('editAge').value = p.age || '';
+    document.getElementById('editGender').value = p.gender || 'Male';
+    document.getElementById('editPhone').value = p.phone || '';
+    document.getElementById('editHospital').value = p.hospital_name || 'Smart Hospital Central';
+    document.getElementById('editAddress').value = p.address || '';
+    document.getElementById('editDisease').value = p.disease || '';
+    document.getElementById('editWard').value = p.ward || 'General';
+    document.getElementById('editStatus').value = p.status || 'Active';
+
+    new bootstrap.Modal(document.getElementById('editPatientModal')).show();
+}
+
+// Submit Edit
+async function submitEditPatient(e) {
+    e.preventDefault();
+    const id = document.getElementById('editPatientId').value;
+    const btn = document.getElementById('editPatientSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Saving...`;
+
+    const payload = {
+        name: document.getElementById('editName').value.trim(),
+        age: parseInt(document.getElementById('editAge').value, 10),
+        gender: document.getElementById('editGender').value,
+        phone: document.getElementById('editPhone').value.trim(),
+        hospital_name: document.getElementById('editHospital').value.trim(),
+        address: document.getElementById('editAddress').value.trim(),
+        disease: document.getElementById('editDisease').value.trim(),
+        ward: document.getElementById('editWard').value,
+        status: document.getElementById('editStatus').value
+    };
+
+    try {
+        const res = await fetch(`/api/patients/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || data.message || 'Update failed');
+
+        bootstrap.Modal.getInstance(document.getElementById('editPatientModal')).hide();
+        showToast(data.message || 'Patient updated successfully!', 'success');
+        await loadPatients();
+    } catch (err) {
+        alert('Error: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="bi bi-save me-1"></i> Update Patient`;
+    }
+}
+
+// View Patient Dossier
+function viewPatient(id) {
+    const p = allPatients.find(x => x.id === id);
+    if (!p) return;
+
+    const body = document.getElementById('viewPatientModalBody');
+    body.innerHTML = `
+        <div class="text-center mb-4">
+            <div class="rounded-circle bg-primary-subtle text-primary d-inline-flex align-items-center justify-content-center mb-2" style="width:60px; height:60px; font-size:1.8rem;">
+                <i class="bi bi-person-fill"></i>
+            </div>
+            <h4 class="fw-bold mb-1">${escapeHtml(p.name)}</h4>
+            <span class="badge bg-secondary-subtle text-secondary rounded-pill">Patient ID #${p.id}</span>
+        </div>
+        <div class="list-group list-group-flush rounded-3 border">
+            <div class="list-group-item d-flex justify-content-between">
+                <span class="text-muted small">Username</span>
+                <span class="fw-bold">${p.username ? '<code>' + escapeHtml(p.username) + '</code>' : 'Not assigned'}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between">
+                <span class="text-muted small">Password Status</span>
+                <span>${p.must_change_password ? '<span class="badge-status-temp">Needs First Login Rotation</span>' : '<span class="badge-status-active">Normal / Active</span>'}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between">
+                <span class="text-muted small">Age & Gender</span>
+                <span class="fw-semibold">${p.age || '-'} years • ${p.gender || '-'}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between">
+                <span class="text-muted small">Phone</span>
+                <span class="fw-semibold">${escapeHtml(p.phone || '-')}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between">
+                <span class="text-muted small">Address</span>
+                <span class="fw-semibold">${escapeHtml(p.address || '-')}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between">
+                <span class="text-muted small">Hospital Facility</span>
+                <span class="fw-semibold">${escapeHtml(p.hospital_name || 'Smart Hospital Central')}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between">
+                <span class="text-muted small">Medical Condition</span>
+                <span class="fw-semibold">${escapeHtml(p.disease || '-')}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between">
+                <span class="text-muted small">Ward</span>
+                <span class="fw-semibold">${escapeHtml(p.ward || 'General')}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between">
+                <span class="text-muted small">Account Status</span>
+                <span class="fw-semibold">${p.status || 'Active'}</span>
+            </div>
+        </div>
+    `;
+
+    new bootstrap.Modal(document.getElementById('viewPatientModal')).show();
+}
+
+// Confirm Delete
+function confirmDeletePatient(id, name) {
+    patientToDeleteId = id;
+    document.getElementById('deletePatientName').textContent = name;
+    new bootstrap.Modal(document.getElementById('deletePatientModal')).show();
+}
+
+// Execute Delete
+async function executeDeletePatient() {
+    if (!patientToDeleteId) return;
+    const btn = document.getElementById('confirmDeletePatientBtn');
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
+
+    try {
+        const res = await fetch(`/api/patients/${patientToDeleteId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || data.message || 'Deletion failed');
+
+        bootstrap.Modal.getInstance(document.getElementById('deletePatientModal')).hide();
+        showToast(data.message || 'Patient deleted successfully!', 'success');
+        await loadPatients();
+    } catch (err) {
+        alert('Error: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Delete';
+        patientToDeleteId = null;
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return String(text).replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+    });
+}
+function escapeQuotes(text) {
+    if (!text) return '';
+    return String(text).replace(/'/g, "\\'");
+}
+
+// Initial initialization
+loadStaffOptions();
+loadPatients();
+</script>
+{% endblock %}

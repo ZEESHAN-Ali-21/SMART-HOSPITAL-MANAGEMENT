@@ -1,0 +1,35 @@
+<svg width="760" height="760" viewBox="0 0 760 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ring1" x1="120" y1="130" x2="660" y2="610" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9BD26F"/>
+      <stop offset="1" stop-color="#4FBA8A"/>
+    </linearGradient>
+    <linearGradient id="ring2" x1="180" y1="180" x2="620" y2="620" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#53C0EF"/>
+      <stop offset="1" stop-color="#0D7BA2"/>
+    </linearGradient>
+    <linearGradient id="cross" x1="280" y1="220" x2="500" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B7E59A"/>
+      <stop offset="1" stop-color="#83C98A"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M110 240C160 120 260 65 370 95C430 115 490 148 542 194C563 214 581 239 600 256C645 297 690 342 690 411C690 528 610 626 494 645C405 661 312 640 244 592C167 538 116 469 109 389C105 343 104 290 110 240Z" fill="url(#ring1)" fill-opacity="0.18"/>
+  <path d="M155 505C196 590 286 640 375 654C477 669 572 637 638 582C678 549 707 513 720 483C744 428 726 365 689 324C655 286 614 260 570 240C527 221 486 207 465 166C432 104 356 69 285 82C214 96 150 140 111 201C61 277 54 369 86 450C103 493 124 496 155 505Z" fill="url(#ring2)" fill-opacity="0.18"/>
+
+  <path d="M110 245C203 88 433 64 551 146C622 195 685 273 685 386C685 515 610 593 512 615C442 632 359 624 293 591C201 547 121 476 110 375C107 328 103 282 110 245Z" stroke="url(#ring1)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M170 520C220 589 298 624 381 629C473 634 562 597 628 536C657 509 680 478 696 448C707 428 707 396 693 369C679 342 640 316 594 293C515 254 448 225 398 177C363 142 340 96 302 82C240 61 170 95 136 149C94 217 98 311 132 368C159 412 184 455 170 520Z" stroke="url(#ring2)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <g>
+    <rect x="286" y="218" width="188" height="188" rx="18" fill="#D8F0D0"/>
+    <rect x="332" y="168" width="96" height="286" rx="22" fill="url(#cross)"/>
+    <rect x="244" y="257" width="284" height="96" rx="20" fill="url(#cross)"/>
+    <path d="M263 517C318 567 401 575 479 548C550 523 618 476 670 415C610 439 532 448 474 451C415 454 355 444 297 422C271 411 240 389 214 367C228 415 243 471 263 517Z" fill="#7CCB8A" fill-opacity="0.65"/>
+    <path d="M449 200C497 182 565 212 600 259C630 301 634 347 610 387C592 421 553 437 513 433C471 429 434 399 418 356C403 316 401 268 449 200Z" fill="#7ECF7C" fill-opacity="0.9"/>
+    <path d="M258 208C205 221 151 249 112 295C131 246 171 211 220 190C236 183 251 182 258 208Z" fill="#79C86F" fill-opacity="0.9"/>
+    <path d="M186 438C138 430 92 450 58 485C96 508 138 516 180 508C205 503 226 494 242 470C222 462 204 449 186 438Z" fill="#78C462" fill-opacity="0.8"/>
+    <path d="M575 456C617 456 656 482 671 523C640 545 599 554 553 547C527 543 500 531 479 514C510 490 535 468 575 456Z" fill="#7CCB8A" fill-opacity="0.75"/>
+  </g>
+
+  <text x="380" y="432" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="86" fill="#0A4D7A" letter-spacing="2">SHMS</text>
+</svg>

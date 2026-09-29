@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Appointments{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div class="eyebrow mb-2">Scheduling</div>
+    <h2 class="mb-1">Appointments</h2>
+    <p class="text-muted mb-0">Book visits and track status.</p>
+</div>
+
+{% if role == 'admin' %}
+<div class="card card-soft p-4">
+    <h5 class="mb-3">Book Appointment</h5>
+    <form id="appointmentForm">
+        <div class="row g-3">
+            <div class="col-12 col-sm-6 col-lg-3">
+                <label class="form-label" for="patient_name">Patient</label>
+                <input id="patient_name" class="form-control" placeholder="Patient name" required>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-3">
+                <label class="form-label" for="doctor_name">Doctor</label>
+                <input id="doctor_name" class="form-control" placeholder="Doctor name" required>
+            </div>
+            <div class="col-6 col-lg-3">
+                <label class="form-label" for="date">Date</label>
+                <input id="date" type="date" class="form-control" required>
+            </div>
+            <div class="col-6 col-lg-3">
+                <label class="form-label" for="time">Time</label>
+                <input id="time" type="time" class="form-control" required>
+            </div>
+        </div>
+        <button class="btn btn-accent mt-3 w-100 w-sm-auto" type="submit">Book Appointment</button>
+    </form>
+</div>
+{% endif %}
+
+<div class="card card-soft p-4">
+    <h5 class="mb-3">Upcoming</h5>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Patient</th>
+                <th>Doctor</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Status</th>
+            </tr>
+            </thead>
+            <tbody id="appointmentTable"></tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+async function loadAppointments() {
+    const response = await fetch("/api/appointments");
+    const appointments = await response.json();
+    const table = document.getElementById("appointmentTable");
+    table.innerHTML = "";
+    appointments.forEach(appointment => {
+        table.innerHTML += `
+        <tr>
+            <td>${appointment.id}</td>
+            <td>${appointment.patient_name}</td>
+            <td>${appointment.doctor_name}</td>
+            <td>${appointment.date}</td>
+            <td>${appointment.time}</td>
+            <td><span class="badge rounded-pill text-bg-success">${appointment.status}</span></td>
+        </tr>`;
+    });
+}
+
+document.getElementById("appointmentForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const data = {
+        patient_name: document.getElementById("patient_name").value,
+        doctor_name: document.getElementById("doctor_name").value,
+        date: document.getElementById("date").value,
+        time: document.getElementById("time").value
+    };
+    const response = await fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    alert(result.message);
+    this.reset();
+    loadAppointments();
+});
+
+loadAppointments();
+</script>
+{% endblock %}

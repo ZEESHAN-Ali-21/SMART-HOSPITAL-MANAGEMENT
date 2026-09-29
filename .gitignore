@@ -1,0 +1,7 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+.mypy_cache/
+*.py[cod]
+hospital.db

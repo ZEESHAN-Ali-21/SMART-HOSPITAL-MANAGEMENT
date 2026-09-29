@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard - Smart Hospital{% endblock %}
+{% block content %}
+<div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div>
+        <div class="eyebrow mb-1">Hospital Administration</div>
+        <h2 class="mb-1 fw-bold">Admin Dashboard</h2>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="badge bg-dark text-white rounded-pill px-3 py-1">
+                <i class="bi bi-shield-check me-1"></i> System Administrator
+            </span>
+            <span class="badge bg-success-subtle text-success rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1">
+                <span class="pulse-dot"></span> System Live & Connected
+            </span>
+        </div>
+    </div>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <a href="/admin/patients" class="btn btn-outline-primary rounded-pill px-3 btn-sm">
+            <i class="bi bi-person-plus me-1"></i> New Patient
+        </a>
+        <a href="/admin/doctors" class="btn btn-outline-info rounded-pill px-3 btn-sm">
+            <i class="bi bi-heart-pulse me-1"></i> New Doctor
+        </a>
+        <a href="/admin/nurses" class="btn btn-outline-success rounded-pill px-3 btn-sm">
+            <i class="bi bi-person-badge me-1"></i> New Nurse
+        </a>
+    </div>
+</div>
+
+<!-- Primary Interactive Metric Cards Required by Prompt -->
+<div class="row g-4 mb-4">
+    <!-- 1. Patients Card -->
+    <div class="col-12 col-md-4">
+        <a href="/admin/patients" class="stat-card card-soft card-clickable stat-card-patients p-4 h-100 text-decoration-none">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <div class="stat-label text-muted">Total Registered</div>
+                    <h3 class="stat-value my-1 text-dark">{{ patient_count }}</h3>
+                    <h5 class="fw-bold text-primary mb-0">Patients</h5>
+                </div>
+                <div class="stat-icon rounded-4 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; font-size: 1.5rem;">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+            </div>
+            <p class="text-muted small mb-3">Add, view, edit & monitor patient records, hospital wards and admission statuses.</p>
+            <div class="card-action-link text-primary fw-semibold small">
+                <span>Open Patient Management</span>
+                <i class="bi bi-arrow-right"></i>
+            </div>
+        </a>
+    </div>
+
+    <!-- 2. Doctors Card -->
+    <div class="col-12 col-md-4">
+        <a href="/admin/doctors" class="stat-card card-soft card-clickable stat-card-doctors p-4 h-100 text-decoration-none">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <div class="stat-label text-muted">Total Registered</div>
+                    <h3 class="stat-value my-1 text-dark">{{ doctor_count }}</h3>
+                    <h5 class="fw-bold text-danger mb-0">Doctors</h5>
+                </div>
+                <div class="stat-icon rounded-4 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; font-size: 1.5rem;">
+                    <i class="bi bi-heart-pulse-fill"></i>
+                </div>
+            </div>
+            <p class="text-muted small mb-3">Manage medical clinicians, specialties, department assignments and shifts.</p>
+            <div class="card-action-link text-danger fw-semibold small">
+                <span>Open Doctor Management</span>
+                <i class="bi bi-arrow-right"></i>
+            </div>
+        </a>
+    </div>
+
+    <!-- 3. Nurses Card -->
+    <div class="col-12 col-md-4">
+        <a href="/admin/nurses" class="stat-card card-soft card-clickable stat-card-nurses p-4 h-100 text-decoration-none">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <div class="stat-label text-muted">Total Registered</div>
+                    <h3 class="stat-value my-1 text-dark">{{ nurse_count }}</h3>
+                    <h5 class="fw-bold text-success mb-0">Nurses</h5>
+                </div>
+                <div class="stat-icon rounded-4 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; font-size: 1.5rem;">
+                    <i class="bi bi-person-badge-fill"></i>
+                </div>
+            </div>
+            <p class="text-muted small mb-3">Coordinate nursing teams, department rosters, shifts and care units.</p>
+            <div class="card-action-link text-success fw-semibold small">
+                <span>Open Nurse Management</span>
+                <i class="bi bi-arrow-right"></i>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Secondary Statistics & System Health Row -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card card-soft p-3 text-center">
+            <div class="text-muted small fw-semibold text-uppercase">Total System Users</div>
+            <div class="fs-4 fw-bold text-dark mt-1">{{ total_users }}</div>
+            <div class="text-muted" style="font-size:0.75rem;">Registered database accounts</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card card-soft p-3 text-center">
+            <div class="text-muted small fw-semibold text-uppercase">Appointments</div>
+            <div class="fs-4 fw-bold text-info mt-1">{{ appointment_count }}</div>
+            <div class="text-muted" style="font-size:0.75rem;">Scheduled clinical visits</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card card-soft p-3 text-center">
+            <div class="text-muted small fw-semibold text-uppercase">Temporary Passwords</div>
+            <div class="fs-4 fw-bold {% if pending_temp_passwords > 0 %}text-warning{% else %}text-muted{% endif %} mt-1">
+                {{ pending_temp_passwords }}
+            </div>
+            <div class="text-muted" style="font-size:0.75rem;">Pending first-time rotation</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card card-soft p-3 text-center">
+            <div class="text-muted small fw-semibold text-uppercase">Active Accounts</div>
+            <div class="fs-4 fw-bold text-success mt-1">{{ active_users_count }}</div>
+            <div class="text-muted" style="font-size:0.75rem;">Compliant active users</div>
+        </div>
+    </div>
+</div>
+
+<!-- Hospital Network & Protocol Status (TCP / HTTP Showcase) -->
+<div class="card card-soft p-4 mb-4 border-0" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #fff;">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div>
+            <span class="badge bg-primary text-white rounded-pill px-3 py-1 mb-2">Network & Protocols</span>
+            <h4 class="mb-1 text-white">Smart Hospital Communication Network</h4>
+            <p class="text-white-50 mb-0 small">
+                Dual-stack architecture combining high-speed RESTful HTTP web APIs with concurrent asynchronous TCP socket streaming.
+            </p>
+        </div>
+        <div class="d-flex gap-3 flex-wrap">
+            <div class="bg-dark bg-opacity-50 p-2 px-3 rounded-3 border border-secondary border-opacity-25 text-center">
+                <div class="text-white-50 small" style="font-size:0.72rem;">REST HTTP API</div>
+                <div class="text-success fw-bold small"><i class="bi bi-check-circle-fill me-1"></i>Port 8000 (FastAPI)</div>
+            </div>
+            <div class="bg-dark bg-opacity-50 p-2 px-3 rounded-3 border border-secondary border-opacity-25 text-center">
+                <div class="text-white-50 small" style="font-size:0.72rem;">TCP SOCKET SERVER</div>
+                <div class="text-info fw-bold small"><i class="bi bi-broadcast me-1"></i>Port 9000 (Active)</div>
+            </div>
+            <div class="bg-dark bg-opacity-50 p-2 px-3 rounded-3 border border-secondary border-opacity-25 text-center">
+                <div class="text-white-50 small" style="font-size:0.72rem;">DATABASE ENGINE</div>
+                <div class="text-warning fw-bold small"><i class="bi bi-database-check me-1"></i>SQLite hospital.db</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Two-Column Recent Activity Tables -->
+<div class="row g-4">
+    <!-- Left Column: Recent Patients -->
+    <div class="col-12 col-lg-7">
+        <div class="card card-soft p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-people text-primary me-2"></i>Recent Patients</h5>
+                <a href="/admin/patients" class="btn btn-outline-primary btn-sm rounded-pill">View All Patients</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-admin">
+                    <thead>
+                        <tr>
+                            <th>Patient</th>
+                            <th>Age / Gender</th>
+                            <th>Contact</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for patient in recent_patients %}
+                        <tr>
+                            <td>
+                                <div class="fw-bold">{{ patient.name }}</div>
+                                <small class="text-muted">{{ patient.hospital_name or 'Smart Hospital Central' }}</small>
+                            </td>
+                            <td>{{ patient.age or '-' }} yrs • {{ patient.gender or '-' }}</td>
+                            <td>{{ patient.phone or '-' }}</td>
+                            <td>
+                                {% if patient.status == 'Active' %}
+                                <span class="badge-status-active">Active</span>
+                                {% elif patient.status == 'Inactive' %}
+                                <span class="badge-status-inactive">Inactive</span>
+                                {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary rounded-pill">{{ patient.status or 'Stable' }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="/admin/patients" class="btn btn-sm btn-light border rounded-pill">Manage</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">
+                                <i class="bi bi-people fs-2 d-block mb-1 text-secondary opacity-50"></i>
+                                No patients registered yet.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Medical & Nursing Staff Overview -->
+    <div class="col-12 col-lg-5">
+        <div class="card card-soft p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-person-badge text-success me-2"></i>Hospital Staff</h5>
+                <div class="d-flex gap-1">
+                    <a href="/admin/doctors" class="btn btn-outline-danger btn-sm rounded-pill">Doctors</a>
+                    <a href="/admin/nurses" class="btn btn-outline-success btn-sm rounded-pill">Nurses</a>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <h6 class="text-muted small fw-bold text-uppercase mb-2">Registered Doctors</h6>
+                {% for doc in recent_doctors %}
+                <div class="d-flex align-items-center justify-content-between p-2 mb-2 rounded-3 bg-light border">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center fw-bold" style="width:34px; height:34px;">
+                            <i class="bi bi-heart-pulse"></i>
+                        </div>
+                        <div>
+                            <div class="fw-semibold small text-dark">{{ doc.name }}</div>
+                            <div class="text-muted" style="font-size:0.75rem;">{{ doc.specialization }} • {{ doc.department or 'General' }}</div>
+                        </div>
+                    </div>
+                    <span class="badge bg-light text-dark border rounded-pill small">{{ doc.shift or 'Morning' }}</span>
+                </div>
+                {% else %}
+                <div class="text-muted small py-2">No doctors registered yet.</div>
+                {% endfor %}
+            </div>
+
+            <div>
+                <h6 class="text-muted small fw-bold text-uppercase mb-2">Registered Nurses</h6>
+                {% for nurse in recent_nurses %}
+                <div class="d-flex align-items-center justify-content-between p-2 mb-2 rounded-3 bg-light border">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center fw-bold" style="width:34px; height:34px;">
+                            <i class="bi bi-person-badge"></i>
+                        </div>
+                        <div>
+                            <div class="fw-semibold small text-dark">{{ nurse.name }}</div>
+                            <div class="text-muted" style="font-size:0.75rem;">{{ nurse.department }} • {{ nurse.shift or 'Morning' }}</div>
+                        </div>
+                    </div>
+                    <span class="badge bg-light text-dark border rounded-pill small">{{ nurse.phone or '-' }}</span>
+                </div>
+                {% else %}
+                <div class="text-muted small py-2">No nurses registered yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

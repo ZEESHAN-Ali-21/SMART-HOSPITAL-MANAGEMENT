@@ -1,0 +1,607 @@
+{% extends "base.html" %}
+{% block title %}Nurse Management - Smart Hospital{% endblock %}
+{% block content %}
+<div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div>
+        <div class="eyebrow mb-1">Nursing Care Administration</div>
+        <h2 class="mb-1 fw-bold">Nurse Management</h2>
+        <p class="text-muted small mb-0">Register care team nurses, organize ward coverage & shifts, and provision login accounts.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a href="/admin-dashboard" class="btn btn-outline-secondary rounded-pill btn-sm px-3">
+            <i class="bi bi-arrow-left me-1"></i> Dashboard
+        </a>
+        {% if role == 'admin' %}
+        <button type="button" class="btn btn-primary rounded-pill btn-sm px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#addNurseModal" style="background:#0284c7; border:none;">
+            <i class="bi bi-person-badge-fill me-1"></i> Add New Nurse
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Controls: Search & Filter -->
+<div class="card card-soft p-3 mb-4">
+    <div class="row g-2 align-items-center">
+        <div class="col-12 col-md-6 col-lg-5">
+            <div class="search-input-wrap">
+                <i class="bi bi-search search-icon"></i>
+                <input type="text" id="nurseSearchInput" class="form-control form-control-sm" placeholder="Search by name, department, username, or phone..." oninput="filterNurseTable()">
+            </div>
+        </div>
+        <div class="col-6 col-md-3 col-lg-3">
+            <select id="nurseStatusFilter" class="form-select form-select-sm" onchange="filterNurseTable()">
+                <option value="">All Account Statuses</option>
+                <option value="Active">Active</option>
+                <option value="Temp Password">Temp Password Pending</option>
+                <option value="Inactive">Inactive</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-3 col-lg-4 text-end">
+            <span class="text-muted small" id="nurseCountDisplay">Loading nurses...</span>
+        </div>
+    </div>
+</div>
+
+<!-- Nurse Table Card -->
+<div class="card card-soft p-0 overflow-hidden shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-admin align-middle">
+            <thead>
+                <tr>
+                    <th>Nurse ID</th>
+                    <th>Nurse Name</th>
+                    <th>Age</th>
+                    <th>Address</th>
+                    <th>Phone Number</th>
+                    <th>Hospital Name</th>
+                    <th>Username</th>
+                    <th>Account Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="nurseTableBody">
+                <tr>
+                    <td colspan="9" class="text-center py-5 text-muted">
+                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                        Loading nurse team records...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 1. ADD NEW NURSE MODAL                     -->
+<!-- ========================================== -->
+<div class="modal fade" id="addNurseModal" tabindex="-1" aria-labelledby="addNurseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-success-subtle text-success p-2 d-flex align-items-center justify-content-center" style="width:36px; height:36px;">
+                        <i class="bi bi-person-badge-fill"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold" id="addNurseModalLabel">Add New Nurse</h5>
+                        <small class="text-muted">Register staff nurse and issue login credentials with temporary password</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addNurseForm" onsubmit="submitAddNurse(event)">
+                <div class="modal-body">
+                    <div class="alert alert-info py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                        <i class="bi bi-shield-lock-fill fs-5"></i>
+                        <div>
+                            <strong>Security Note:</strong> Passwords are protected using salted PBKDF2 hashing. The nurse will be required to change the temporary password on first login.
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-person-heart me-1 text-success"></i> Nurse Profile & Contact Information</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="addNurseName">Nurse Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="addNurseName" placeholder="e.g. Nurse Sunita Rao" required>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label" for="addNurseAge">Age (optional)</label>
+                            <input type="number" class="form-control" id="addNurseAge" placeholder="e.g. 29" min="18" max="90">
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label" for="addNurseDepartment">Department <span class="text-danger">*</span></label>
+                            <select class="form-select" id="addNurseDepartment" required>
+                                <option value="ICU">ICU</option>
+                                <option value="Emergency Care">Emergency Care</option>
+                                <option value="General Ward">General Ward</option>
+                                <option value="Pediatrics">Pediatrics</option>
+                                <option value="Cardiology Unit">Cardiology Unit</option>
+                                <option value="Surgical Care">Surgical Care</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="addNursePhone">Phone Number <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control" id="addNursePhone" placeholder="+91 90000 22222" required>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="addNurseHospital">Hospital Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="addNurseHospital" value="Smart Hospital Central" required>
+                        </div>
+                        <div class="col-12 col-md-8">
+                            <label class="form-label" for="addNurseAddress">Address <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="addNurseAddress" placeholder="Street, City, Quarter" required>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" for="addNurseShift">Assigned Shift</label>
+                            <select class="form-select" id="addNurseShift">
+                                <option value="Morning">Morning (07:00 AM - 03:00 PM)</option>
+                                <option value="Evening">Evening (03:00 PM - 11:00 PM)</option>
+                                <option value="Night">Night (11:00 PM - 07:00 AM)</option>
+                                <option value="Rotational">Rotational</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-dark border-bottom pb-2 mb-3 mt-4"><i class="bi bi-key-fill me-1 text-success"></i> Account Credentials</h6>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="addNurseUsername">Username <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-at"></i></span>
+                                <input type="text" class="form-control" id="addNurseUsername" placeholder="e.g. nurse_sunita" pattern="^[a-zA-Z0-9_.-]+$" required>
+                            </div>
+                            <div class="form-text">Must be unique across the hospital.</div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="addNurseTempPassword">Temporary Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                <input type="text" class="form-control font-monospace" id="addNurseTempPassword" placeholder="Min. 6 characters" minlength="6" required>
+                                <button type="button" class="btn btn-outline-secondary" onclick="generateRandomTempPassword('addNurseTempPassword')">Generate</button>
+                            </div>
+                            <div class="form-text">Nurse will change this after first login.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" id="addNurseSubmitBtn" class="btn btn-primary rounded-pill px-4 fw-semibold" style="background:#0284c7; border:none;">
+                        <i class="bi bi-check2-circle me-1"></i> Create Nurse Account
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 2. EDIT NURSE MODAL                        -->
+<!-- ========================================== -->
+<div class="modal fade" id="editNurseModal" tabindex="-1" aria-labelledby="editNurseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold" id="editNurseModalLabel">
+                    <i class="bi bi-pencil-square text-primary me-2"></i>Edit Nurse Information
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editNurseForm" onsubmit="submitEditNurse(event)">
+                <input type="hidden" id="editNurseId">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="editNurseName">Nurse Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editNurseName" required>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label" for="editNurseAge">Age</label>
+                            <input type="number" class="form-control" id="editNurseAge" min="18" max="90">
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label" for="editNurseDepartment">Department <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editNurseDepartment" required>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="editNursePhone">Phone Number <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control" id="editNursePhone" required>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="editNurseHospital">Hospital Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editNurseHospital" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="editNurseAddress">Address <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editNurseAddress" required>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="editNurseShift">Shift</label>
+                            <select class="form-select" id="editNurseShift">
+                                <option value="Morning">Morning</option>
+                                <option value="Evening">Evening</option>
+                                <option value="Night">Night</option>
+                                <option value="Rotational">Rotational</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="editNurseStatus">Account Status</label>
+                            <select class="form-select" id="editNurseStatus">
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" id="editNurseSubmitBtn" class="btn btn-teal rounded-pill px-4 fw-semibold text-white" style="background:#0d9488; border:none;">
+                        <i class="bi bi-save me-1"></i> Update Nurse
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 3. VIEW NURSE DETAILS MODAL                -->
+<!-- ========================================== -->
+<div class="modal fade" id="viewNurseModal" tabindex="-1" aria-labelledby="viewNurseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold" id="viewNurseModalLabel">
+                    <i class="bi bi-person-badge-fill text-success me-2"></i>Nurse Dossier
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4" id="viewNurseModalBody">
+                <!-- Dynamically populated -->
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 4. DELETE NURSE MODAL                      -->
+<!-- ========================================== -->
+<div class="modal fade" id="deleteNurseModal" tabindex="-1" aria-labelledby="deleteNurseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content text-center p-3">
+            <div class="modal-body">
+                <div class="rounded-circle bg-danger-subtle text-danger d-inline-flex align-items-center justify-content-center mb-3" style="width:56px; height:56px;">
+                    <i class="bi bi-trash3-fill fs-3"></i>
+                </div>
+                <h5 class="fw-bold mb-2">Delete Nurse?</h5>
+                <p class="text-muted small mb-3">
+                    Are you sure you want to delete nurse <strong id="deleteNurseName"></strong>? This will remove nurse records and deactivate their login credentials.
+                </p>
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="confirmDeleteNurseBtn" class="btn btn-danger rounded-pill px-3" onclick="executeDeleteNurse()">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let allNurses = [];
+let nurseToDeleteId = null;
+
+function generateRandomTempPassword(targetId) {
+    const chars = 'abcdefghjkmnpqrstuvwxyz23456789!@#$';
+    let res = 'Nur@';
+    for (let i = 0; i < 6; i++) {
+        res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    document.getElementById(targetId).value = res;
+}
+
+async function loadNurses() {
+    const tbody = document.getElementById('nurseTableBody');
+    try {
+        const res = await fetch('/api/nurses');
+        allNurses = await res.json();
+        renderNurses(allNurses);
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-danger">Failed to load nurse records.</td></tr>`;
+    }
+}
+
+function renderNurses(nurses) {
+    const tbody = document.getElementById('nurseTableBody');
+    const countDisplay = document.getElementById('nurseCountDisplay');
+    countDisplay.textContent = `Showing ${nurses.length} nurse${nurses.length === 1 ? '' : 's'}`;
+
+    if (!nurses.length) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="empty-state">
+                    <i class="bi bi-person-badge empty-state-icon text-success opacity-50"></i>
+                    <div class="empty-state-title">No nurses found</div>
+                    <div class="empty-state-desc">No nurse records match your filter criteria or none have been registered yet.</div>
+                </td>
+            </tr>`;
+        return;
+    }
+
+    tbody.innerHTML = nurses.map(n => {
+        let statusBadge = '<span class="badge-status-active">Active</span>';
+        if (n.status === 'Inactive' || n.user_status === 'Inactive') {
+            statusBadge = '<span class="badge-status-inactive">Inactive</span>';
+        } else if (n.must_change_password) {
+            statusBadge = '<span class="badge-status-temp" title="Must change temporary password">Temp Password</span>';
+        }
+
+        const usernameDisplay = n.username 
+            ? `<code class="text-primary fw-semibold">${escapeHtml(n.username)}</code>` 
+            : `<span class="text-muted small">No account</span>`;
+
+        return `
+            <tr>
+                <td class="fw-bold text-muted">#${n.id}</td>
+                <td>
+                    <div class="fw-bold text-dark">${escapeHtml(n.name)}</div>
+                    <div class="text-muted small">${escapeHtml(n.department || 'Care Unit')} • ${escapeHtml(n.shift || 'Morning')}</div>
+                </td>
+                <td>${n.age ? n.age + ' yrs' : '-'}</td>
+                <td>
+                    <span class="d-inline-block text-truncate" style="max-width: 140px;" title="${escapeHtml(n.address || '')}">
+                        ${escapeHtml(n.address || 'Not specified')}
+                    </span>
+                </td>
+                <td>${escapeHtml(n.phone || '-')}</td>
+                <td>
+                    <span class="d-inline-block text-truncate" style="max-width: 150px;" title="${escapeHtml(n.hospital_name || '')}">
+                        ${escapeHtml(n.hospital_name || 'Smart Hospital Central')}
+                    </span>
+                </td>
+                <td>${usernameDisplay}</td>
+                <td>${statusBadge}</td>
+                <td class="text-end">
+                    <div class="btn-action-group">
+                        <button class="btn-action btn-action-view" title="View Dossier" onclick="viewNurse(${n.id})">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn-action btn-action-edit" title="Edit Nurse" onclick="openEditNurseModal(${n.id})">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn-action btn-action-delete" title="Delete Nurse" onclick="confirmDeleteNurse(${n.id}, '${escapeQuotes(n.name)}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function filterNurseTable() {
+    const query = document.getElementById('nurseSearchInput').value.trim().toLowerCase();
+    const statusVal = document.getElementById('nurseStatusFilter').value;
+
+    const filtered = allNurses.filter(n => {
+        const matchesQuery = !query || 
+            (n.name && n.name.toLowerCase().includes(query)) ||
+            (n.department && n.department.toLowerCase().includes(query)) ||
+            (n.username && n.username.toLowerCase().includes(query)) ||
+            (n.phone && n.phone.toLowerCase().includes(query)) ||
+            (n.hospital_name && n.hospital_name.toLowerCase().includes(query));
+
+        let matchesStatus = true;
+        if (statusVal === 'Active') {
+            matchesStatus = (n.status !== 'Inactive' && !n.must_change_password);
+        } else if (statusVal === 'Temp Password') {
+            matchesStatus = Boolean(n.must_change_password);
+        } else if (statusVal === 'Inactive') {
+            matchesStatus = (n.status === 'Inactive');
+        }
+
+        return matchesQuery && matchesStatus;
+    });
+
+    renderNurses(filtered);
+}
+
+async function submitAddNurse(e) {
+    e.preventDefault();
+    const btn = document.getElementById('addNurseSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Creating...`;
+
+    const payload = {
+        name: document.getElementById('addNurseName').value.trim(),
+        age: document.getElementById('addNurseAge').value ? parseInt(document.getElementById('addNurseAge').value, 10) : null,
+        department: document.getElementById('addNurseDepartment').value,
+        phone: document.getElementById('addNursePhone').value.trim(),
+        hospital_name: document.getElementById('addNurseHospital').value.trim(),
+        address: document.getElementById('addNurseAddress').value.trim(),
+        shift: document.getElementById('addNurseShift').value,
+        username: document.getElementById('addNurseUsername').value.trim(),
+        temporary_password: document.getElementById('addNurseTempPassword').value
+    };
+
+    try {
+        const res = await fetch('/api/nurses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || data.message || 'Creation failed');
+
+        bootstrap.Modal.getInstance(document.getElementById('addNurseModal')).hide();
+        document.getElementById('addNurseForm').reset();
+        document.getElementById('addNurseHospital').value = 'Smart Hospital Central';
+        showToast(data.message || 'Nurse account created successfully with temporary password!', 'success');
+        await loadNurses();
+    } catch (err) {
+        alert('Error: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="bi bi-check2-circle me-1"></i> Create Nurse Account`;
+    }
+}
+
+function openEditNurseModal(id) {
+    const n = allNurses.find(x => x.id === id);
+    if (!n) return;
+
+    document.getElementById('editNurseId').value = n.id;
+    document.getElementById('editNurseName').value = n.name || '';
+    document.getElementById('editNurseAge').value = n.age || '';
+    document.getElementById('editNurseDepartment').value = n.department || '';
+    document.getElementById('editNursePhone').value = n.phone || '';
+    document.getElementById('editNurseHospital').value = n.hospital_name || 'Smart Hospital Central';
+    document.getElementById('editNurseAddress').value = n.address || '';
+    document.getElementById('editNurseShift').value = n.shift || 'Morning';
+    document.getElementById('editNurseStatus').value = n.status || 'Active';
+
+    new bootstrap.Modal(document.getElementById('editNurseModal')).show();
+}
+
+async function submitEditNurse(e) {
+    e.preventDefault();
+    const id = document.getElementById('editNurseId').value;
+    const btn = document.getElementById('editNurseSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Saving...`;
+
+    const payload = {
+        name: document.getElementById('editNurseName').value.trim(),
+        age: document.getElementById('editNurseAge').value ? parseInt(document.getElementById('editNurseAge').value, 10) : null,
+        department: document.getElementById('editNurseDepartment').value.trim(),
+        phone: document.getElementById('editNursePhone').value.trim(),
+        hospital_name: document.getElementById('editNurseHospital').value.trim(),
+        address: document.getElementById('editNurseAddress').value.trim(),
+        shift: document.getElementById('editNurseShift').value,
+        status: document.getElementById('editNurseStatus').value
+    };
+
+    try {
+        const res = await fetch(`/api/nurses/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || data.message || 'Update failed');
+
+        bootstrap.Modal.getInstance(document.getElementById('editNurseModal')).hide();
+        showToast(data.message || 'Nurse updated successfully!', 'success');
+        await loadNurses();
+    } catch (err) {
+        alert('Error: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="bi bi-save me-1"></i> Update Nurse`;
+    }
+}
+
+function viewNurse(id) {
+    const n = allNurses.find(x => x.id === id);
+    if (!n) return;
+
+    const body = document.getElementById('viewNurseModalBody');
+    body.innerHTML = `
+        <div class="text-center mb-4">
+            <div class="rounded-circle bg-success-subtle text-success d-inline-flex align-items-center justify-content-center mb-2" style="width:60px; height:60px; font-size:1.8rem;">
+                <i class="bi bi-person-badge-fill"></i>
+            </div>
+            <h4 class="fw-bold mb-1">${escapeHtml(n.name)}</h4>
+            <span class="badge bg-secondary-subtle text-secondary rounded-pill">Nurse ID #${n.id}</span>
+        </div>
+        <div class="list-group list-group-flush rounded-3 border">
+            <div class="list-group-item d-flex justify-content-between">
+                <span class="text-muted small">Username</span>
+                <span class="fw-bold">${n.username ? '<code>' + escapeHtml(n.username) + '</code>' : 'Not assigned'}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between">
+                <span class="text-muted small">Password Status</span>
+                <span>${n.must_change_password ? '<span class="badge-status-temp">Needs First Login Rotation</span>' : '<span class="badge-status-active">Normal / Active</span>'}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between">
+                <span class="text-muted small">Department</span>
+                <span class="fw-bold text-success">${escapeHtml(n.department || 'Care Unit')}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between">
+                <span class="text-muted small">Shift</span>
+                <span class="fw-semibold">${escapeHtml(n.shift || 'Morning')}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between">
+                <span class="text-muted small">Age</span>
+                <span class="fw-semibold">${n.age ? n.age + ' years' : 'Not specified'}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between">
+                <span class="text-muted small">Phone</span>
+                <span class="fw-semibold">${escapeHtml(n.phone || '-')}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between">
+                <span class="text-muted small">Address</span>
+                <span class="fw-semibold">${escapeHtml(n.address || '-')}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between">
+                <span class="text-muted small">Hospital Facility</span>
+                <span class="fw-semibold">${escapeHtml(n.hospital_name || 'Smart Hospital Central')}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between">
+                <span class="text-muted small">Account Status</span>
+                <span class="fw-semibold">${n.status || 'Active'}</span>
+            </div>
+        </div>
+    `;
+
+    new bootstrap.Modal(document.getElementById('viewNurseModal')).show();
+}
+
+function confirmDeleteNurse(id, name) {
+    nurseToDeleteId = id;
+    document.getElementById('deleteNurseName').textContent = name;
+    new bootstrap.Modal(document.getElementById('deleteNurseModal')).show();
+}
+
+async function executeDeleteNurse() {
+    if (!nurseToDeleteId) return;
+    const btn = document.getElementById('confirmDeleteNurseBtn');
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
+
+    try {
+        const res = await fetch(`/api/nurses/${nurseToDeleteId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || data.message || 'Deletion failed');
+
+        bootstrap.Modal.getInstance(document.getElementById('deleteNurseModal')).hide();
+        showToast(data.message || 'Nurse account deleted successfully!', 'success');
+        await loadNurses();
+    } catch (err) {
+        alert('Error: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Delete';
+        nurseToDeleteId = null;
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return String(text).replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+    });
+}
+function escapeQuotes(text) {
+    if (!text) return '';
+    return String(text).replace(/'/g, "\\'");
+}
+
+loadNurses();
+</script>
+{% endblock %}

@@ -1,0 +1,425 @@
+{% extends "base.html" %}
+{% block title %}Doctor Dashboard{% endblock %}
+{% block content %}
+<div class="page-header d-flex flex-column flex-sm-row justify-content-between gap-3">
+    <div>
+        <div class="eyebrow mb-2">Care overview</div>
+        <h2 class="mb-1">Doctor Dashboard</h2>
+        <span class="badge badge-role pill">Role: Doctor</span>
+    </div>
+    <div class="text-sm-end">
+        <div><strong>{{ user_name }}</strong></div>
+        <small class="text-muted">Medical Team</small>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- 1. Doctor Details -->
+    <div class="col-md-12">
+        <div class="card card-soft profile-hero p-4">
+            <h4 class="mb-3">Doctor Details</h4>
+            <div class="row gy-3">
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Doctor ID:</strong> {{ doctor.id if doctor else 'N/A' }}</p>
+                    <p class="mb-1"><strong>Doctor Name:</strong> {{ doctor.name if doctor else 'N/A' }}</p>
+                    <p class="mb-1"><strong>Specialization:</strong> {{ doctor.specialization if doctor else 'N/A' }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Contact Number:</strong> {{ doctor.phone if doctor else 'N/A' }}</p>
+                    <p class="mb-1"><strong>Email:</strong> {{ user.email if user and user.email else 'N/A' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- 2 & 6. Doctor's Appointments & Management -->
+    <div class="col-lg-12" id="appointments">
+        <div class="card card-soft p-4">
+            <h5 class="mb-3">Upcoming Appointments</h5>
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Patient Name</th>
+                            <th>Patient ID</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appt in upcoming_appointments %}
+                        <tr>
+                            <td>{{ appt.patient_name }}</td>
+                            <td>{{ appt.patient_id if appt.patient_id else 'N/A' }}</td>
+                            <td>{{ appt.date }}</td>
+                            <td>{{ appt.time }}</td>
+                            <td>{{ appt.reason if appt.reason else 'Routine Checkup' }}</td>
+                            <td><span class="badge rounded-pill text-bg-warning">{{ appt.status }}</span></td>
+                            <td>
+                                <form action="/doctor/complete-appointment" method="POST" class="d-inline">
+                                    <input type="hidden" name="appointment_id" value="{{ appt.id }}">
+                                    <button type="submit" class="btn btn-sm btn-success rounded-pill">Mark Completed</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-muted text-center py-3">No upcoming appointments.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card card-soft p-4 h-100">
+            <h5 class="mb-3">Completed Appointments & Add Advice</h5>
+            <div class="table-responsive mb-4">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Patient Name</th>
+                            <th>Date</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appt in completed_appointments %}
+                        <tr>
+                            <td>{{ appt.patient_name }}</td>
+                            <td>{{ appt.date }}</td>
+                            <td>{{ appt.reason if appt.reason else 'Routine Checkup' }}</td>
+                            <td><span class="badge rounded-pill text-bg-success">{{ appt.status }}</span></td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-muted text-center py-3">No completed appointments yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <h5 class="mb-3 border-top pt-4">Add Doctor's Advice</h5>
+            <form action="/doctor/add-advice" method="POST">
+                <div class="mb-3">
+                    <label for="appointment_id" class="form-label">Select Completed Appointment</label>
+                    <select class="form-select" id="appointment_id" name="appointment_id" required>
+                        <option value="">Choose an appointment...</option>
+                        {% for appt in completed_appointments %}
+                        <option value="{{ appt.id }}">{{ appt.patient_name }} - {{ appt.date }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="advice" class="form-label">Doctor's Advice</label>
+                    <textarea class="form-control" id="advice" name="advice" rows="3" placeholder="Enter medical advice, prescriptions, or notes..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Save Advice</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. Patient Details -->
+    <div class="col-lg-6" id="patients">
+        <div class="card card-soft p-4 h-100">
+            <h5 class="mb-3">Patients (With Appointments)</h5>
+            <div class="list-group list-group-flush mb-4">
+                {% for patient in patients %}
+                <button type="button" class="list-group-item list-group-item-action bg-transparent px-0 border-bottom" onclick="showHistory('{{ patient.name }}')">
+                    <div class="d-flex w-100 justify-content-between align-items-center">
+                        <h6 class="mb-1 text-primary">{{ patient.name }} (ID: {{ patient.id }})</h6>
+                        <small class="text-muted">Click to view history</small>
+                    </div>
+                    <p class="mb-1 text-muted small">Age: {{ patient.age }} | Gender: {{ patient.gender }} | Contact: {{ patient.phone }}</p>
+                </button>
+                {% else %}
+                <div class="alert alert-light mb-0">No patients associated with appointments.</div>
+                {% endfor %}
+            </div>
+
+            <!-- 4. Patient Visit History -->
+            <h5 class="mb-3 border-top pt-4" id="history-title">Visit History</h5>
+            <div class="table-responsive">
+                <table class="table mb-0" id="history-table">
+                    <thead>
+                        <tr>
+                            <th>Doctor Name</th>
+                            <th>Visit Date</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body">
+                        <tr>
+                            <td colspan="3" class="text-muted text-center py-3">Select a patient above to view history.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Nurses Details -->
+    <div class="col-lg-12" id="nurses">
+        <div class="card card-soft p-4">
+            <h5 class="mb-3">Assigned Nurses</h5>
+            <div class="row g-3">
+                {% for nurse in nurses %}
+                <div class="col-md-4">
+                    <div class="list-group-item bg-transparent border rounded p-3 h-100">
+                        <div class="d-flex w-100 justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0 text-success"><i class="bi bi-person-badge me-2"></i>{{ nurse.name }}</h6>
+                        </div>
+                        <p class="mb-1 text-muted small"><strong>Department:</strong> {{ nurse.department }}</p>
+                        <p class="mb-0 text-muted small"><strong>Contact:</strong> {{ nurse.phone }}</p>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12">
+                    <div class="alert alert-light mb-0">No nurses assigned to your patients.</div>
+                </div>
+                {% endfor %}
+            </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Doctor Communication Hub -->
+    <div class="col-lg-6">
+        <div class="card card-soft p-4 h-100">
+            <h5 class="mb-3"><i class="bi bi-chat-dots text-primary me-2"></i>Send Message / Advice</h5>
+            <form onsubmit="sendDoctorMessage(event)">
+                <div class="mb-3">
+                    <label for="msg_type" class="form-label">Message Type</label>
+                    <select class="form-select" id="msg_type" onchange="toggleMessageTargets()" required>
+                        <option value="">Select type...</option>
+                        <option value="Doctor Advice">Doctor Advice (to Patient)</option>
+                        <option value="Doctor -> Patient">Message (to Patient)</option>
+                        <option value="Doctor -> Nurse">Message/Instruction (to Nurse)</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3" id="div_patient_select" style="display:none;">
+                    <label for="msg_patient_id" class="form-label">Select Patient</label>
+                    <select class="form-select" id="msg_patient_id">
+                        <option value="">Choose patient...</option>
+                        {% for p in patients %}
+                        <option value="{{ p.id }}" data-user-id="{{ p.user_id }}">{{ p.name }} (ID: {{ p.id }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3" id="div_nurse_select" style="display:none;">
+                    <label for="msg_nurse_id" class="form-label">Select Nurse</label>
+                    <select class="form-select" id="msg_nurse_id">
+                        <option value="">Choose nurse...</option>
+                        {% for n in all_nurses %}
+                        <option value="{{ n.user_id }}">{{ n.name }} - {{ n.department }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="msg_content" class="form-label">Message / Advice</label>
+                    <textarea class="form-control" id="msg_content" rows="3" required></textarea>
+                </div>
+                <button type="submit" id="btnSendDocMsg" class="btn btn-primary w-100"><i class="bi bi-send me-1"></i>Send</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card card-soft p-4 h-100">
+            <h5 class="mb-3"><i class="bi bi-inbox text-success me-2"></i>Inbox</h5>
+            <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
+                {% set has_inbox = false %}
+                {% for msg in messages %}
+                    {% if msg.receiver_id == doctor.user_id %}
+                    {% set has_inbox = true %}
+                    <div class="list-group-item px-0 pt-3 pb-2 border-bottom">
+                        <div class="d-flex w-100 justify-content-between mb-1">
+                            <strong class="text-dark">{{ msg.sender_name }} <span class="badge bg-secondary-subtle text-secondary ms-2">{{ msg.message_type }}</span></strong>
+                            <small class="text-muted">{{ msg.date }} {{ msg.time }}</small>
+                        </div>
+                        <p class="mb-1 small">{{ msg.message }}</p>
+                        {% if msg.patient_name != '—' %}
+                        <small class="text-muted">Related Patient: {{ msg.patient_name }}</small>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+                {% if not has_inbox %}
+                <div class="text-muted small mt-2">No incoming messages.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card card-soft p-4">
+            <h5 class="mb-3"><i class="bi bi-clock-history text-secondary me-2"></i>Communication History</h5>
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Date/Time</th>
+                            <th>Type</th>
+                            <th>Sender</th>
+                            <th>Receiver</th>
+                            <th>Patient Context</th>
+                            <th>Message</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for msg in messages %}
+                        <tr>
+                            <td class="text-nowrap">{{ msg.date }} <small class="text-muted">{{ msg.time }}</small></td>
+                            <td><span class="badge bg-secondary-subtle text-secondary">{{ msg.message_type }}</span></td>
+                            <td>{{ msg.sender_name }}</td>
+                            <td>{{ msg.receiver_name }}</td>
+                            <td>{{ msg.patient_name }}</td>
+                            <td>{{ msg.message }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-muted text-center py-3">No communication history found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const allAppointments = [
+        {% for appt in appointments %}
+        {
+            patient_name: "{{ appt.patient_name }}",
+            doctor_name: "{{ appt.doctor_name }}",
+            date: "{{ appt.date }}",
+            reason: "{{ appt.reason if appt.reason else 'Routine Checkup' }}",
+            status: "{{ appt.status }}"
+        },
+        {% endfor %}
+    ];
+
+    function showHistory(patientName) {
+        document.getElementById('history-title').innerText = "Visit History: " + patientName;
+        const tbody = document.getElementById('history-body');
+        tbody.innerHTML = "";
+        
+        const pastVisits = allAppointments.filter(a => a.patient_name === patientName && a.status.toLowerCase() !== 'scheduled');
+        
+        if (pastVisits.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='3' class='text-muted text-center py-3'>No previous visits found for this patient.</td></tr>";
+            return;
+        }
+
+        pastVisits.forEach(visit => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${visit.doctor_name}</td>
+                <td>${visit.date}</td>
+                <td>${visit.reason}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function toggleMessageTargets() {
+        const type = document.getElementById('msg_type').value;
+        const pDiv = document.getElementById('div_patient_select');
+        const nDiv = document.getElementById('div_nurse_select');
+        const pSel = document.getElementById('msg_patient_id');
+        const nSel = document.getElementById('msg_nurse_id');
+
+        pDiv.style.display = 'none';
+        nDiv.style.display = 'none';
+        pSel.required = false;
+        nSel.required = false;
+
+        if (type === 'Doctor Advice' || type === 'Doctor -> Patient') {
+            pDiv.style.display = 'block';
+            pSel.required = true;
+        } else if (type === 'Doctor -> Nurse') {
+            pDiv.style.display = 'block'; // Context patient
+            nDiv.style.display = 'block';
+            pSel.required = true;
+            nSel.required = true;
+        }
+    }
+
+    async function sendDoctorMessage(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnSendDocMsg');
+        btn.disabled = true;
+        
+        const type = document.getElementById('msg_type').value;
+        const pSel = document.getElementById('msg_patient_id');
+        const nSel = document.getElementById('msg_nurse_id');
+        const content = document.getElementById('msg_content').value;
+
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0];
+        const timeStr = now.toTimeString().split(' ')[0].substring(0,5);
+
+        let receiver_id = null;
+        let patient_id = null;
+
+        if (type === 'Doctor Advice' || type === 'Doctor -> Patient') {
+            if (pSel.selectedIndex > 0) {
+                receiver_id = pSel.options[pSel.selectedIndex].getAttribute('data-user-id');
+                patient_id = pSel.value;
+            }
+        } else if (type === 'Doctor -> Nurse') {
+            if (nSel.selectedIndex > 0) {
+                receiver_id = nSel.value;
+            }
+            if (pSel.selectedIndex > 0) {
+                patient_id = pSel.value;
+            }
+        }
+
+        const payload = {
+            receiver_id: receiver_id,
+            patient_id: patient_id,
+            message_type: type,
+            message: content,
+            date: dateStr,
+            time: timeStr
+        };
+
+        try {
+            const res = await fetch('/api/messages', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error("Failed to send message");
+            showToast("Message sent successfully", "success");
+            setTimeout(() => window.location.reload(), 1500);
+        } catch(err) {
+            alert(err.message);
+            btn.disabled = false;
+        }
+    }
+</script>
+{% endblock %}
