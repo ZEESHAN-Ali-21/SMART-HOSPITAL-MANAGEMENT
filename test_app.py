@@ -1,7 +1,7 @@
 import unittest
 from fastapi.testclient import TestClient
 import main
-from database import SessionLocal, User, Patient, Doctor, Nurse, hash_password, verify_password
+from main import SessionLocal, User, Patient, Doctor, Nurse, hash_password, verify_password
 
 
 class SmartHospitalTests(unittest.TestCase):
